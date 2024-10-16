@@ -9,6 +9,7 @@ import numpy as np
 
 import lbann.contrib.args
 import lbann.contrib.launcher
+from lbann.launcher import make_timestamped_work_dir
 from lbann.core.util import get_parallel_strategy_args
 import lbann.util.data
 import os
@@ -143,7 +144,7 @@ if __name__ == "__main__":
         '--local-batchnorm', action='store_true',
         help='Use local batch normalization mode')
     for role in ['train','val','test']:
-        parser.add_argument(f"--{role}-dir", action='store', type=lambda value: None if value == "None" else value
+        parser.add_argument(f"--{role}-dir", action='store', type=lambda value: None if value == "None" else value,
                             default=None, required=(role=='train'),
                             help=f'the directory of the {role} dataset') 
     parser.add_argument(
@@ -213,6 +214,7 @@ if __name__ == "__main__":
     
     parser.add_argument(
         '--work-dir', action='store', type=str, default=None)
+
     parser.add_argument(
         '--progress', action=argparse.BooleanOptionalAction, default=True,
         help='Display progress bar output (default: true)')
@@ -253,6 +255,12 @@ if __name__ == "__main__":
         action="append",
         default=None,
         help="Preamble commands")
+
+    parser.add_argument('--callan-fom',
+                        action='store_true',
+                        default=False,
+                        help='Will cause the path to the work directory to be written to a file '+\
+                             'so that Callan can find the log files for FOM calculations. (default: false)')
 
     lbann.contrib.args.add_optimizer_arguments(
         parser,
@@ -370,6 +378,15 @@ if __name__ == "__main__":
     else:
         preamble_cmds=[]
 
+    if args.callan_fom:
+        # Added so that callan can get the work dir for FOM calculations.
+        if not args.work_dir:
+            args.work_dir = make_timestamped_work_dir(job_name=args.job_name, 
+                                                      nodes=args.nodes, procs_per_node=args.procs_per_node) 
+        # For FOM calculator in Callan
+        with open(f'workdir_{args.job_name}.txt','w') as w:
+            print(args.work_dir,file=w)
+        del args.callan_fom
 
     # Run experiment
     kwargs = lbann.contrib.args.get_scheduler_kwargs(args)

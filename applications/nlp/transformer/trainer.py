@@ -68,6 +68,11 @@ def construct_training_task(
     nodes=args.nodes
     ppn=args.procs_per_node
     work_dir = make_timestamped_work_dir(job_name=args.job_name, nodes=nodes, procs_per_node=ppn)
+    if args.callan_fom:
+        # For FOM calculator in Callan
+        with open(f'workdir_{args.job_name}.txt','w') as w:
+            print(work_dir,file=w)
+        del args.callan_fom
 
     # Create batch script
     train_script = make_batch_script(
@@ -365,6 +370,11 @@ def add_training_arguments(parser: argparse.ArgumentParser):
                         default=False,
                         help='Use scientific notation for objective value '
                         'printouts in progress bar (default: false)')
+    parser.add_argument('--callan-fom',
+                        action='store_true',
+                        default=False,
+                        help='Will cause the path to the work directory to be written to a file '+\
+                             'so that Callan can find the log files for FOM calculations. (default: false)')
 
 
 # ----------------------------------------------
